@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>if(matchMedia('(pointer:coarse)').matches||screen.width<700){document.documentElement.classList.add('m');}</script>
+<title>摆烂排练器 · 人类非必要努力管理局</title>
+<style>
+:root{
+  --ink:#3A3550; --ink-soft:#6E6890; --ink-faint:#A29CBA;
+  --paper:rgba(255,255,255,.55); --paper-strong:rgba(255,255,255,.78);
+  --line:rgba(255,255,255,.66); --shadow:0 20px 60px rgba(118,98,178,.16);
+  --acc:#6C5CE7; --warn:#B26B2E; --crit:#B44E66;
+  --tint1:#C7B8FF; --tint2:#BFE3FF; --tint3:#FFD6E8;
+  --mono:"JetBrains Mono","SF Mono",ui-monospace,Consolas,monospace;
+  --sans:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--sans);color:var(--ink);min-height:100vh;overflow-x:hidden;
+  background:linear-gradient(165deg,#D9CFFF 0%,#C9E2FF 48%,#FFD9EC 100%) fixed;
+}
+.orb{position:fixed;border-radius:50%;filter:blur(70px);opacity:.6;z-index:0;pointer-events:none;transition:background 1.4s ease}
+.orb-1{width:46vmin;height:46vmin;top:6%;left:-12%;background:var(--tint1);animation:drift1 26s ease-in-out infinite}
+.orb-2{width:40vmin;height:40vmin;bottom:-10%;right:-8%;background:var(--tint3);animation:drift2 32s ease-in-out infinite}
+.orb-3{width:28vmin;height:28vmin;top:44%;right:14%;background:var(--tint2);animation:drift3 24s ease-in-out infinite}
+@keyframes drift1{50%{transform:translate(7vmin,5vmin) scale(1.1)}}
+@keyframes drift2{50%{transform:translate(-6vmin,-7vmin) scale(1.06)}}
+@keyframes drift3{50%{transform:translate(-5vmin,6vmin) scale(1.12)}}
+@media (prefers-reduced-motion:reduce){
+  .orb{animation:none}
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+.stage{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:28px 22px 60px;min-height:100vh}
+.sys-top{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:12px;color:var(--ink-soft);letter-spacing:1.5px;padding:4px 2px 26px;flex-wrap:wrap}
+.scene{display:none}
+.scene.active{display:block;animation:sceneIn .55s ease}
+@keyframes sceneIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+h1.hero{
+  font-size:clamp(42px,7vw,64px);font-weight:800;letter-spacing:2px;line-height:1.15;
+  color:var(--acc);
+}
+@supports (-webkit-background-clip:text){
+  h1.hero{background:linear-gradient(120deg,#6C5CE7,#B85CC7 52%,#5CA8E8);-webkit-background-clip:text;background-clip:text;color:transparent}
+}
+.hero-en{font-family:var(--mono);font-size:13px;letter-spacing:4px;color:var(--ink-faint);margin-top:10px}
+.hero-sub{margin-top:14px;font-size:15px;color:var(--ink-soft)}
+.terminal{
+  margin-top:30px;background:var(--paper);border:1px solid var(--line);border-radius:16px;
+  padding:20px 22px;font-family:var(--mono);font-size:13px;line-height:2.05;color:var(--ink-soft);
+  box-shadow:var(--shadow);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);max-width:620px;
+}
+.terminal .t-line{opacity:0;animation:lineIn .5s ease both}
+.terminal .t-line:nth-child(1){animation-delay:.25s}
+.terminal .t-line:nth-child(2){animation-delay:.65s}
+.terminal .t-line:nth-child(3){animation-delay:1.05s}
+.terminal .t-line:nth-child(4){animation-delay:1.45s}
+@keyframes lineIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.terminal .t-time{color:var(--ink-faint)}
+.terminal .t-hl{color:var(--ink)}
+.btn{
+  display:inline-block;border:none;cursor:pointer;font-family:var(--sans);
+  border-radius:999px;font-size:16px;letter-spacing:1px;transition:transform .18s ease,box-shadow .18s ease;
+}
+.btn-primary{
+  margin-top:30px;padding:15px 40px;color:#fff;font-weight:600;
+  background:linear-gradient(120deg,#8E7BEF,#B78CE8 55%,#8FB7F2);
+  box-shadow:0 14px 32px rgba(124,107,214,.36);
+}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 20px 40px rgba(124,107,214,.44)}
+.btn-ghost{
+  padding:12px 26px;font-size:14px;font-weight:500;color:var(--acc);
+  background:rgba(255,255,255,.55);border:1px solid var(--line);
+}
+.btn-ghost:hover{transform:translateY(-2px);background:rgba(255,255,255,.75)}
+.hero-note{margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:.5px}
+h2.sec{font-size:clamp(24px,3.6vw,32px);letter-spacing:1px}
+p.sec-sub{margin-top:10px;color:var(--ink-soft);font-size:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:30px}
+@media (max-width:860px){.grid4{grid-template-columns:repeat(2,1fr)}}
+.card{
+  background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px 18px 18px;
+  cursor:pointer;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(118,98,178,.10);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.card.selected{border-color:rgba(108,92,231,.75);box-shadow:0 0 0 3px rgba(124,107,214,.16),var(--shadow);transform:translateY(-2px) scale(1.02)}
+.card-strip{height:6px;border-radius:3px;margin-bottom:16px}
+.card-en{font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;color:var(--ink-faint)}
+.card h3{font-size:19px;margin:8px 0 6px;letter-spacing:.5px}
+.card p{font-size:12.5px;color:var(--ink-soft);line-height:1.75;min-height:44px}
+.card-chip{display:inline-block;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--acc);background:rgba(108,92,231,.10);border:1px solid rgba(108,92,231,.22);border-radius:999px;padding:4px 12px}
+.confirm-bar{
+  margin-top:26px;display:none;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  background:var(--paper-strong);border:1px solid var(--line);border-radius:16px;padding:14px 20px;box-shadow:var(--shadow);
+}
+.confirm-bar.show{display:flex;animation:sceneIn .4s ease}
+.confirm-bar .cb-text{font-size:14.5px}
+.confirm-bar .cb-text b{color:var(--acc)}
+.back-link{display:inline-block;margin-bottom:22px;font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);cursor:pointer;letter-spacing:1px}
+.back-link:hover{color:var(--acc)}
+.script-list{display:grid;gap:14px;margin-top:28px;max-width:680px}
+.script-card{
+  background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px 20px;cursor:pointer;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+}
+.script-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.script-card.selected{border-color:rgba(108,92,231,.75);box-shadow:0 0 0 3px rgba(124,107,214,.16),var(--shadow)}
+.script-card .s-name{font-size:17px;font-weight:600}
+.script-card .s-tag{font-family:var(--mono);font-size:11px;color:var(--acc);margin-right:10px}
+.script-card .s-desc{margin-top:8px;font-size:13px;color:var(--ink-soft);line-height:1.8}
+.run-wrap{max-width:680px;margin:34px auto 0}
+.run-head{font-family:var(--mono);font-size:12px;letter-spacing:1.5px;color:var(--ink-soft);margin-bottom:14px}
+.progress-track{height:10px;border-radius:5px;background:rgba(255,255,255,.55);border:1px solid var(--line);overflow:hidden}
+.progress-fill{height:100%;width:0%;border-radius:5px;background:linear-gradient(90deg,#8E7BEF,#B78CE8,#8FB7F2);transition:width .9s ease}
+.progress-track.stall .progress-fill{animation:pulseBar 1.1s ease-in-out infinite}
+@keyframes pulseBar{50%{opacity:.55}}
+.pct-row{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.log{
+  margin-top:22px;background:rgba(255,255,255,.5);border:1px solid var(--line);border-radius:14px;
+  padding:16px 18px;font-family:var(--mono);font-size:12.5px;line-height:2.1;color:var(--ink-soft);
+  max-height:300px;overflow-y:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+.log-line{animation:lineIn .4s ease both}
+.log-time{color:var(--ink-faint)}
+.log-line.lvl-BOOT{color:var(--ink)}
+.log-line.lvl-PROCESS{color:var(--ink-soft)}
+.log-line.lvl-WARNING{color:var(--warn)}
+.log-line.lvl-CRITICAL{color:var(--crit)}
+.log-line.lvl-REVERSE{color:var(--acc)}
+.log-line.lvl-FINAL{color:var(--acc);font-weight:700}
+.cert-wrap{max-width:600px;margin:30px auto 0;text-align:center}
+#cert-canvas{width:100%;height:auto;border-radius:14px;box-shadow:0 24px 70px rgba(110,90,180,.28)}
+.cert-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+.share-zone{max-width:600px;margin:38px auto 0;display:grid;gap:14px}
+.share-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.share-card h4{font-family:var(--mono);font-size:11.5px;letter-spacing:2px;color:var(--ink-soft);font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.share-copy-btn{font-size:11px;padding:5px 14px;letter-spacing:1px}
+.share-text{margin-top:10px;font-family:var(--mono);font-size:12.5px;line-height:2;color:var(--ink-soft);white-space:pre-wrap}
+.site-footer{margin-top:56px;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);letter-spacing:1px}
+.sfx-btn{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--acc);background:rgba(108,92,231,.10);border:1px solid rgba(108,92,231,.25);border-radius:999px;padding:4px 12px;cursor:pointer;transition:background .15s ease}
+.sfx-btn:hover{background:rgba(108,92,231,.2)}
+/* ================= 移动端适配（html.m 由 head 脚本按设备判定） ================= */
+.btn,.card,.script-card,.sfx-btn,.share-copy-btn,.back-link{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html.m .stage{padding:20px 16px calc(48px + env(safe-area-inset-bottom))}
+html.m .sys-top{font-size:10.5px;letter-spacing:1px}
+html.m .grid4{grid-template-columns:1fr;gap:12px;margin-top:22px}
+html.m .card p{min-height:0}
+html.m .terminal{font-size:14px;padding:16px 18px;margin-top:24px;line-height:2}
+html.m .hero-sub{font-size:14.5px}
+html.m .btn-primary{width:100%;text-align:center}
+html.m .hero-note{font-size:11px}
+html.m .confirm-bar{flex-direction:column;align-items:stretch;text-align:center}
+html.m .confirm-bar .btn-primary{width:100%}
+html.m .script-card{padding:16px 18px}
+html.m .s-name{font-size:16.5px}
+html.m .s-desc{font-size:14px}
+html.m .log{font-size:13.5px;max-height:40vh;-webkit-overflow-scrolling:touch}
+html.m .pct-row{font-size:11.5px}
+html.m .run-wrap{margin-top:26px}
+html.m .cert-actions{flex-direction:column}
+html.m .cert-actions .btn{width:100%}
+html.m .share-copy-btn{font-size:13px;padding:8px 20px}
+html.m .share-text{font-size:13.5px}
+html.m .sfx-btn{font-size:12px;padding:8px 16px}
+html.m .back-link{display:inline-block;padding:8px 0}
+html.m #toast{bottom:calc(30px + env(safe-area-inset-bottom))}
+html.m .orb{animation:none;filter:blur(44px);opacity:.5}
+/* 手机版鉴定书（HTML 预览，替代缩小的 Canvas） */
+html.m #cert-canvas{display:none}
+#cert-mobile{display:none}
+html.m #cert-mobile{display:block}
+.cert-mobile{
+  text-align:left;background:var(--paper-strong);border:1px solid var(--line);border-radius:18px;
+  padding:26px 22px 30px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.cm-head-en{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--ink-faint);text-align:center}
+.cm-head{font-size:14px;font-weight:500;text-align:center;margin-top:6px}
+.cm-pill{display:block;width:fit-content;margin:12px auto 0;font-family:var(--mono);font-size:11px;color:var(--acc);background:rgba(108,92,231,.10);border:1px solid rgba(108,92,231,.3);border-radius:999px;padding:4px 14px}
+.cm-no{font-family:var(--mono);font-size:10.5px;letter-spacing:1px;color:var(--ink-soft);text-align:center;margin-top:14px}
+.cm-title{font-size:26px;font-weight:700;text-align:center;margin-top:14px;line-height:1.3}
+.cm-sub{font-size:12px;color:var(--ink-soft);text-align:center;margin-top:6px}
+.cm-line{height:1px;background:var(--line);margin:16px 0}
+.cm-field{padding:10px 2px;border-bottom:1px solid var(--line)}
+.cm-field:last-of-type{border-bottom:none}
+.cm-field span{display:block;font-size:11.5px;color:var(--ink-soft);letter-spacing:2px}
+.cm-field b{display:block;font-size:16.5px;font-weight:600;margin-top:3px;line-height:1.5}
+.cm-label{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--ink-soft)}
+.cm-opinion{font-size:14.5px;line-height:1.9;margin-top:10px}
+.cm-grade{text-align:center;margin-top:18px}
+.cm-grade strong{display:block;font-size:24px;color:var(--acc);margin-top:6px}
+.cm-grade p{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+.cm-foot{font-size:11px;color:var(--ink-faint);line-height:1.8;margin-top:18px;min-height:78px;padding-right:110px}
+.cm-seal{
+  position:absolute;right:16px;bottom:16px;width:88px;height:88px;border:2.5px solid rgba(108,92,231,.7);
+  border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transform:rotate(-12deg);color:var(--acc);
+}
+.cm-seal::before{content:'';position:absolute;inset:6px;border:1.2px solid rgba(108,92,231,.5);border-radius:50%}
+.cm-seal b{font-size:14px;font-weight:600}
+.cm-seal i{font-style:normal;font-family:var(--mono);font-size:7px;letter-spacing:2px;margin-top:2px}
+#toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(16px);z-index:50;
+  background:rgba(58,53,80,.9);color:#fff;font-size:13px;padding:10px 22px;border-radius:999px;
+  opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;font-family:var(--mono);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="stage">
+  <div class="sys-top">
+    <span>HUMAN IDLE MANAGEMENT SYSTEM</span>
+    <span><button id="sfx-toggle" class="sfx-btn">SFX · ON</button>&nbsp;&nbsp;民用测试终端 v0.1 · <span id="clock">00:00:00</span></span>
+  </div>
+
+  <!-- 第一幕 · 梦幻入口 -->
+  <section id="scene-intro" class="scene active">
+    <h1 class="hero">摆烂排练器</h1>
+    <div class="hero-en">THE ART OF DOING NOTHING</div>
+    <p class="hero-sub">人生没有彩排，但摆烂可以。本系统为暂时不想努力的人类，提供程序化排练支持。</p>
+    <div class="terminal">
+      <div class="t-line"><span class="t-time">09:41:02 · SYSTEM</span>&nbsp;&nbsp;用户已接入摆烂管理网络。</div>
+      <div class="t-line"><span class="t-time">09:41:03 · SYSTEM</span>&nbsp;&nbsp;正在检测今日努力意愿……</div>
+      <div class="t-line"><span class="t-time">09:41:04 · SYSTEM</span>&nbsp;&nbsp;检测完成。未检测到显著努力意愿，符合预期。</div>
+      <div class="t-line"><span class="t-time">09:41:05 · SYSTEM</span>&nbsp;&nbsp;<span class="t-hl">检测到用户存在非必要努力行为。是否立即停止内耗？</span></div>
+    </div>
+    <button id="btn-start" class="btn btn-primary">开始排练 →</button>
+    <div class="hero-note">预计耗时：比努力少一点 · 本系统不产生任何实际价值</div>
+  </section>
+
+  <!-- 第二幕 · 情境选择 -->
+  <section id="scene-select" class="scene">
+    <h2 class="sec">请选择今天的演出项目</h2>
+    <p class="sec-sub">每个项目均可完整排练，恕不产生成果。</p>
+    <div id="scenario-grid" class="grid4"></div>
+    <div id="confirm-select" class="confirm-bar">
+      <span class="cb-text">已选定演出项目：<b id="confirm-scenario-text"></b></span>
+      <button id="btn-load-script" class="btn btn-primary" style="margin-top:0;padding:12px 30px;font-size:14.5px">载入剧本 →</button>
+    </div>
+  </section>
+
+  <!-- 第三幕 · 剧本选择 -->
+  <section id="scene-script" class="scene">
+    <span id="script-back" class="back-link">← 返回演出项目</span>
+    <h2 class="sec">排练项目：<span id="script-title" style="color:var(--acc)"></span></h2>
+    <p id="script-desc" class="sec-sub"></p>
+    <div id="script-list" class="script-list"></div>
+    <div id="confirm-script" class="confirm-bar">
+      <span class="cb-text">已选定剧本：<b id="confirm-script-text"></b></span>
+      <button id="btn-run" class="btn btn-primary" style="margin-top:0;padding:12px 30px;font-size:14.5px">开始排练 →</button>
+    </div>
+  </section>
+
+  <!-- 第四幕 · 排练演出 -->
+  <section id="scene-run" class="scene">
+    <div class="run-wrap">
+      <div class="run-head" id="run-title">REHEARSAL IN PROGRESS</div>
+      <div class="progress-track" id="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="pct-row"><span>EXECUTION PROGRESS</span><span id="progress-pct">0%</span></div>
+      <div class="log" id="log-list"></div>
+    </div>
+  </section>
+
+  <!-- 第五幕 · 摆烂鉴定书 -->
+  <section id="scene-cert" class="scene">
+    <div class="cert-wrap">
+      <div class="run-head" id="cert-no">OFFICIAL CERTIFICATE</div>
+      <canvas id="cert-canvas" width="1500" height="2200"></canvas>
+      <div id="cert-mobile" class="cert-mobile"></div>
+      <div class="cert-actions">
+        <button id="btn-save" class="btn btn-primary" style="margin-top:0;padding:13px 32px;font-size:14.5px">保存鉴定书 PNG</button>
+        <button id="btn-retry" class="btn btn-ghost">重新排练</button>
+      </div>
+    </div>
+    <div class="share-zone">
+      <div class="share-card">
+        <h4><span>群聊型 · A</span><button class="btn btn-ghost share-copy-btn" data-share="group">复制文案</button></h4>
+        <pre class="share-text" id="share-group"></pre>
+      </div>
+      <div class="share-card">
+        <h4><span>系统公告型 · B</span><button class="btn btn-ghost share-copy-btn" data-share="notice">复制文案</button></h4>
+        <pre class="share-text" id="share-notice"></pre>
+      </div>
+      <div class="share-card">
+        <h4><span>结项报告型 · C</span><button class="btn btn-ghost share-copy-btn" data-share="report">复制文案</button></h4>
+        <pre class="share-text" id="share-report"></pre>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">本报告仅供娱乐使用 · 系统不对任何人生进度负责</footer>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ================= 数据层：全部文案 ================= */
+const TINTS = {
+  intro:  ['#C7B8FF','#BFE3FF','#FFD6E8']
+};
+
+const SCENARIOS = [
+  {
+    id:'vanish', name:'物理性消失', en:'PHYSICAL DISAPPEARANCE', chip:'身体已下线',
+    desc:'今天不想动，想从世界上暂时蒸发。',
+    tint:['#A9D6FF','#BFE3FF','#C7B8FF'],
+    strip:'linear-gradient(120deg,#9CCBFF,#BFE3FF)',
+    project:'人体临时蒸发计划', business:'从世界上暂时蒸发，目前进度 99%', work:'研究如何优雅地不存在',
+    titles:['空间隐匿高级研究员','低功耗人体样本','云端驻留观察员'],
+    opinions:[
+      '该用户成功将自身存在感调整至环境噪音级别，且全程未引起任何待办事项的注意，隐匿技法娴熟。',
+      '经观测，「{script}」期间用户与床的融合度达到 99%，剩余 1% 被系统判定为「为下次排练保留」。',
+      '该用户对消失艺术展现出严肃的学术兴趣，其静止时长已超出系统全部预估模型的上限。'
+    ],
+    faults:['f005','f037'],
+    scripts:[
+      {id:'a1',name:'化为一团云',desc:'预计悬浮时间：到心情好转为止。',effort:'少量（维持呼吸）',outcome:'一朵云，观测中'},
+      {id:'a2',name:'与床融为一体',desc:'系统将协助你完成人体与家具的边界消融。',effort:'极少（翻身都省了）',outcome:'边界已不可考'},
+      {id:'a3',name:'进入冬眠模式',desc:'唤醒条件：外卖到了。',effort:'前期较多（找姿势）',outcome:'冬眠中，勿扰'}
+    ],
+    events:[
+      {t:0,   lvl:'BOOT',    text:'蒸发程序已启动，正在降低人体存在感。', pct:8},
+      {t:1.8, lvl:'PROCESS', text:'正在将骨骼与床建立软连接……连接成功。', pct:26},
+      {t:3.6, lvl:'PROCESS', text:'环境音已调整为接近白噪音的远处生活。', pct:47},
+      {t:5.4, lvl:'PROCESS', text:'正在确认是否有必要完全消失……系统认为半透明即可。', pct:88, stall:true},
+      {t:7.2, inject:'fault', pct:100},
+      {t:11.2, lvl:'FINAL',  text:'排练完成。您已成功从待办事项的世界暂时注销。'}
+    ]
+  },
+  {
+    id:'social', name:'社交系统停机', en:'SOCIAL SHUTDOWN', chip:'信号已失踪',
+    desc:'不想回复消息，也不想解释自己为什么没回复。',
+    tint:['#FFC9E2','#E8D5FF','#BFD4FF'],
+    strip:'linear-gradient(120deg,#FFB8DC,#E8D5FF)',
+    project:'人类信号休眠工程', business:'对全部消息保持礼貌的沉默', work:'研究不回消息的正当性',
+    titles:['非必要消息延期专员','低功耗社交协议工程师','已读不回领域专家'],
+    opinions:[
+      '该用户在完全未回复任何消息的情况下，保持了情绪稳定与内心自洽，展现出稀有的社交定力。',
+      '经核验，「{script}」运行期间共产生 47 条未读消息，用户心态波动为 0，系统已将该数据列为研究样本。',
+      '该用户把「不回复」执行成了一项正式业务，流程完整，态度端正，系统找不到任何干预的理由。'
+    ],
+    faults:['f009','f052'],
+    scripts:[
+      {id:'b1',name:'开启人类免打扰',desc:'所有消息将获得礼貌的沉默。',effort:'零（这是重点）',outcome:'沉默，且礼貌'},
+      {id:'b2',name:'回复延迟至下个世纪',desc:'系统承诺：届时你也不想起。',effort:'少量（排期用了力气）',outcome:'已排期至 21XX 年'},
+      {id:'b3',name:'启动已读不回模拟器',desc:'已读状态正常，回复功能暂停服务。',effort:'中等（装作在忙）',outcome:'已读状态正常'}
+    ],
+    events:[
+      {t:0,   lvl:'BOOT',    text:'社交协议进入维护模式，正在礼貌地忽略一切。', pct:8},
+      {t:1.8, lvl:'PROCESS', text:'已读功能保持在线，回复功能转人工——人工也已下班。', pct:30},
+      {t:3.6, lvl:'PROCESS', text:'正在生成「刚才没看手机」的合理时间线……生成完毕，逻辑自洽。', pct:55},
+      {t:5.4, lvl:'PROCESS', text:'正在确认是否有必要解释……系统建议：不必。', pct:88, stall:true},
+      {t:7.2, inject:'fault', pct:100},
+      {t:11.2, lvl:'FINAL',  text:'排练完成。您的社交信号已进入低功耗待机，且理直气壮。'}
+    ]
+  },
+  {
+    id:'theater', name:'生产力表演', en:'PRODUCTIVITY THEATER', chip:'忙碌但无果',
+    desc:'看起来很忙，但灵魂已经下班。',
+    tint:['#C7B8FF','#D9C8FF','#BFD9FF'],
+    strip:'linear-gradient(120deg,#B7A5FF,#D9C8FF)',
+    project:'今日生产力模拟工程', business:'把还没做的事情，安排得明明白白', work:'研究如何开始工作',
+    titles:['高级无效劳动艺术家','流程意识杰出贡献者','任务拆分学终身教授'],
+    opinions:[
+      '该用户能够在任务尚未开始的情况下，提前完成全部准备工作，展现出卓越的流程意识与突出的延期潜力。',
+      '经全程观测，「{script}」执行得行云流水：投入了充沛的忙碌，避免了任何实质推进，动作与成果成功脱钩。',
+      '该用户以「{script}」为核心，构建了一套自洽的无产出体系，系统多次尝试介入，均被礼貌地忙碌化解。'
+    ],
+    faults:['f021','f008','f099'],
+    scripts:[
+      {id:'c1',name:'打开文档，凝视未来',desc:'文档内容暂定空白，凝视深度不限。',effort:'大量（凝视功率拉满）',outcome:'文档仍为空白，凝视很深'},
+      {id:'c2',name:'整理文件，暂不处理内容',desc:'通过移动文件的位置获得掌控感。',effort:'中等（移动文件很累）',outcome:'文件更整洁了，问题没有'},
+      {id:'c3',name:'将任务拆分成更多任务',desc:'每拆一次，成就感 +1，任务数 +2。',effort:'大量（拆分也是劳动）',outcome:'任务从 3 个变成 9 个'}
+    ],
+    events:[
+      {t:0,   lvl:'BOOT',    text:'摆烂排练程序已启动，正在为无效劳动分配必要资源。', pct:8},
+      {t:1.8, lvl:'PROCESS', text:'正在创建任务文件夹。任务本身尚未创建。', pct:26},
+      {t:3.6, lvl:'PROCESS', text:'已加载桌面环境、水杯与若有所思的表情。', pct:47},
+      {t:5.4, lvl:'WARNING', text:'发现任务文件夹数量超过实际任务数量。系统判断您具有较强的组织能力。', pct:70},
+      {t:7.6, lvl:'PROCESS', text:'正在确认是否有必要完成最后 1%……', pct:99, stall:true},
+      {t:9.6, inject:'fault', pct:100},
+      {t:13.2, lvl:'FINAL',  text:'经综合评估，本次排练圆满完成。您具备将简单问题复杂化的优秀潜质。'}
+    ]
+  },
+  {
+    id:'meaning', name:'意义感失联', en:'MEANING NOT FOUND', chip:'人生暂未响应',
+    desc:'不想规划人生，也不想把每一分钟都过得有意义。',
+    tint:['#A9A4E8','#8FB0E8','#C9A9E8'],
+    strip:'linear-gradient(120deg,#9A94E0,#8FB0E8)',
+    project:'意义感停机维护计划', business:'正式暂停寻找人生答案', work:'研究意义的替代品',
+    titles:['人生意义临时保管员','无目的漫步首席代表','自我优化暂停观察员'],
+    opinions:[
+      '该用户主动暂停了人生规划服务，且未表现出焦虑，说明其对「停机也是运行的一种形式」有深刻理解。',
+      '经评估，「{script}」期间未产生任何自我优化念头，心理资源留存率 100%，建议保持当前运行状态。',
+      '该用户以「{script}」的方式与意义感保持距离，目前双方相安无事，系统判定为可持续的合作关系。'
+    ],
+    faults:['f042','f077'],
+    scripts:[
+      {id:'d1',name:'今日不再升级自己',desc:'当前版本已够用，更新公告不予查看。',effort:'少量（忍住不升级）',outcome:'版本号维持原样'},
+      {id:'d2',name:'暂停寻找人生答案',desc:'答案将安全存放于系统深处，随时可取（并不会取）。',effort:'零（暂停最省电）',outcome:'答案安全入库，从未取出'},
+      {id:'d3',name:'在无意义的事情上浪费一点时间',desc:'本项无量化指标，请放心浪费。',effort:'中等（快乐是有成本的）',outcome:'时间被完美浪费'}
+    ],
+    events:[
+      {t:0,   lvl:'BOOT',    text:'意义检索引擎已暂停，正在体验无目标状态。', pct:8},
+      {t:1.8, lvl:'PROCESS', text:'已卸载自我优化模块，剩余内存用于发呆。', pct:30},
+      {t:3.6, lvl:'PROCESS', text:'正在尝试为「躺着」赋予一层隐喻……赋予失败，保持原样也很好。', pct:55},
+      {t:5.4, lvl:'PROCESS', text:'正在确认此举是否虚度……系统无法计算，遂决定不算。', pct:88, stall:true},
+      {t:7.2, inject:'fault', pct:100},
+      {t:11.2, lvl:'FINAL',  text:'排练完成。您与人生答案保持了安全距离，双方均表示舒适。'}
+    ]
+  }
+];
+
+const FAULTS = {
+  f005:{code:'IDLE-005',lvl:'WARNING',def:'蒸发过程被第三方目击',
+    line:'IDLE-005：蒸发过程被第三方目击。系统建议放慢蒸发速度。',
+    handle:'反转处理：蒸发已调整为半透明模式——既离开了世界，又没有错过外卖。'},
+  f037:{code:'IDLE-037',lvl:'NOTICE',def:'无法区分思考与发呆',
+    line:'IDLE-037：系统无法区分思考与发呆。',
+    handle:'反转处理：经裁定，两项均计入高级脑力活动，不影响本次评级。'},
+  f009:{code:'IDLE-009',lvl:'WARNING',def:'未读消息持续堆积',
+    line:'IDLE-009：未读消息持续堆积，已超出普通人类的承重范围。',
+    handle:'反转处理：系统已启动心理承重结构，并将沉默重新定义为「深度倾听」。'},
+  f052:{code:'IDLE-052',lvl:'NOTICE',def:'摆烂行为需要经过审批',
+    line:'IDLE-052：本次摆烂行为需要经过审批。',
+    handle:'反转处理：已自动批准——避免增加双方的工作量。'},
+  f021:{code:'IDLE-021',lvl:'CRITICAL',def:'进度条已完成，任务未启动',
+    line:'IDLE-021：进度条已完成 100%，但任务未启动。正在尝试将进度条转换为实际成果……转换失败。',
+    handle:'反转处理：根据《无效劳动评估条例》，上述进度条已登记为本次排练的核心成果。'},
+  f008:{code:'IDLE-008',lvl:'WARNING',def:'任务已被无限期延期',
+    line:'IDLE-008：任务已被无限期延期。',
+    handle:'反转处理：延期行为已登记为阶段性成果，延期本身被评定为执行力。'},
+  f099:{code:'IDLE-099',lvl:'CRITICAL',def:'系统自身正在摸鱼',
+    line:'IDLE-099：系统检测到系统自身正在摸鱼。',
+    handle:'反转处理：经协商，系统与用户互不举报，共同维持本次排练运行。'},
+  f042:{code:'IDLE-042',lvl:'NOTICE',def:'人生目标坐标缺失',
+    line:'IDLE-042：人生目标坐标缺失，检索返回空集。',
+    handle:'反转处理：系统已在当前位置待机，并认为这里就挺好。'},
+  f077:{code:'IDLE-077',lvl:'WARNING',def:'意义感信号微弱',
+    line:'IDLE-077：意义感信号微弱，正在重试连接。',
+    handle:'反转处理：系统已切换至更低标准重试，并在第三次尝试后选择放弃评估。'},
+  f001:{code:'IDLE-001',lvl:'NOTICE',def:'努力意愿未检测到',
+    line:'IDLE-001：努力意愿未检测到。',
+    handle:'反转处理：建议重新检测；系统不保证检测到，也不打算保证。'}
+};
+
+const GRADES = [
+  {label:'优 秀', note:'优秀之处在于，本次排练已按计划完成。', weight:60},
+  {label:'合 格', note:'合格之处在于，您什么都没做，但系统也没有。', weight:30},
+  {label:'特别注明', note:'特别注明：本次排练的最大成果，是成功完成了本次排练。', weight:10}
+];
+
+const NOTES = [
+  '恭喜您成功将一个简单问题转化为一个长期项目。',
+  '报告生成过程所消耗的时间，不计入本次摆烂时长。',
+  '系统祝您下次继续保持当前水平。',
+  '本次排练已按计划完成，未产生可量化成果。',
+  '请妥善保管本证书，虽然它没有任何用途。',
+  '如需申诉，请在下个世纪之前提交。'
+];
+
+/* ================= 音效系统（WebAudio 合成，无外部资源） ================= */
+const SFX = (()=>{
+  let ctx=null, master=null;
+  let enabled = localStorage.getItem('bailan_sfx') !== '0';
+  function ensure(){
+    if(!ctx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return null;
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = 0.22;
+      master.connect(ctx.destination);
+    }
+    if(ctx.state==='suspended') ctx.resume();
+    return ctx;
+  }
+  function tone(o){
+    if(!enabled || !ensure()) return;
+    const t0 = ctx.currentTime + (o.delay||0);
+    const dur = o.dur || 0.15;
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.f, t0);
+    if(o.f2) osc.frequency.exponentialRampToValueAtTime(Math.max(o.f2,1), t0+dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.vol||0.5, t0+0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    osc.connect(g); g.connect(master);
+    osc.start(t0); osc.stop(t0+dur+0.05);
+  }
+  function noise(o){
+    if(!enabled || !ensure()) return;
+    const t0 = ctx.currentTime + (o.delay||0);
+    const len = Math.max(1, ((o.dur||0.08)*ctx.sampleRate)|0);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*(1-i/len);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const f = ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value = o.hp||800;
+    const g = ctx.createGain(); g.gain.value = o.vol||0.4;
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t0);
+  }
+  const fx = {
+    tap(){ tone({f:520,f2:880,dur:.07,vol:.5}); },
+    pop(){ tone({f:300,f2:60,dur:.12,vol:.7}); noise({dur:.03,vol:.15,hp:2000}); },
+    boing(){ tone({f:180,f2:520,dur:.18,vol:.6}); tone({f:520,f2:170,dur:.22,vol:.45,delay:.13}); },
+    start(){ [392,523,659].forEach((f,i)=>tone({f,dur:.1,type:'square',vol:.22,delay:i*.09})); },
+    boot(){ tone({f:220,f2:440,dur:.12,type:'triangle',vol:.3}); },
+    tick(){ tone({f:900+Math.random()*500,f2:1400,dur:.04,type:'triangle',vol:.16}); },
+    warn(){ tone({f:392,dur:.12,type:'square',vol:.28}); tone({f:330,dur:.14,type:'square',vol:.28,delay:.13}); },
+    crit(){ tone({f:440,f2:110,dur:.4,type:'sawtooth',vol:.3}); noise({dur:.15,vol:.2,hp:400}); },
+    reverse(){ [523,659,784,1047].forEach((f,i)=>tone({f,dur:.09,type:'triangle',vol:.26,delay:i*.06})); },
+    stall(){ for(let i=0;i<6;i++) tone({f:600+(i%2)*140,dur:.07,vol:.18,delay:i*.09}); },
+    fanfare(){ [523,659,784,1047].forEach((f,i)=>tone({f,dur:.16,type:'sawtooth',vol:.2,delay:i*.11})); tone({f:1319,dur:.4,type:'triangle',vol:.24,delay:.46}); },
+    stamp(){ tone({f:120,f2:50,dur:.16,vol:.8}); noise({dur:.05,vol:.3,hp:300}); },
+    ding(){ tone({f:1568,dur:.18,vol:.35}); tone({f:2093,dur:.22,vol:.25,delay:.06}); },
+    shutter(){ noise({dur:.05,vol:.4,hp:1200}); noise({dur:.04,vol:.3,hp:2000,delay:.08}); },
+    down(){ tone({f:700,f2:120,dur:.4,vol:.4}); }
+  };
+  function toggle(){
+    enabled = !enabled;
+    localStorage.setItem('bailan_sfx', enabled?'1':'0');
+    return enabled;
+  }
+  return { fx, toggle, get enabled(){ return enabled; } };
+})();
+
+/* ================= 工具函数 ================= */
+const $ = (id)=>document.getElementById(id);
+const pick = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+function pickAvoid(arr, avoid){
+  if(arr.length<2) return arr[0];
+  let v; do{ v = pick(arr); }while(v===avoid);
+  return v;
+}
+function weightedPick(items){
+  const total = items.reduce((s,i)=>s+i.weight,0);
+  let r = Math.random()*total;
+  for(const it of items){ r -= it.weight; if(r<=0) return it; }
+  return items[items.length-1];
+}
+const pad3 = (n)=>String(n).padStart(3,'0');
+function fmtTime(t){
+  const m = Math.floor(t/60), s = (t%60).toFixed(1);
+  return String(m).padStart(2,'0')+':'+(s<10?'0':'')+s;
+}
+
+/* ================= 状态与场景路由 ================= */
+const SPEED = new URLSearchParams(location.search).has('fast') ? 0.18 : 1; /* 测试加速口 */
+const state = { scenario:null, script:null, fault:null, result:null, lastTitle:null, timers:[] };
+let counter = parseInt(localStorage.getItem('bailan_cert_no')||'7',10);
+
+function showScene(name){
+  document.querySelectorAll('.scene').forEach(s=>s.classList.toggle('active', s.id==='scene-'+name));
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function applyTint(colors){
+  const r = document.documentElement.style;
+  r.setProperty('--tint1', colors[0]);
+  r.setProperty('--tint2', colors[1]);
+  r.setProperty('--tint3', colors[2]);
+}
+applyTint(TINTS.intro);
+
+function toast(msg){
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+/* ================= 时钟 ================= */
+function tick(){
+  const d = new Date();
+  $('clock').textContent = [d.getHours(),d.getMinutes(),d.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+}
+tick(); setInterval(tick, 1000);
+
+/* ================= 第二幕：情境选择 ================= */
+function renderScenarios(){
+  const grid = $('scenario-grid');
+  grid.innerHTML = SCENARIOS.map((s,i)=>`
+    <div class="card" data-id="${s.id}">
+      <div class="card-strip" style="background:${s.strip}"></div>
+      <div class="card-en">0${i+1} · ${s.en}</div>
+      <h3>${s.name}</h3>
+      <p>${s.desc}</p>
+      <span class="card-chip">${s.chip}</span>
+    </div>`).join('');
+  grid.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      grid.querySelectorAll('.card').forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      SFX.fx.boing();
+      state.scenario = SCENARIOS.find(s=>s.id===card.dataset.id);
+      state.script = null;
+      applyTint(state.scenario.tint);
+      $('confirm-scenario-text').textContent = state.scenario.name;
+      $('confirm-select').classList.add('show');
+    });
+  });
+}
+
+/* ================= 第三幕：剧本选择 ================= */
+function renderScripts(){
+  const s = state.scenario;
+  $('script-title').textContent = s.name;
+  $('script-desc').textContent = '情境：' + s.desc + ' 请选择本次非必要努力的终止方式。';
+  const list = $('script-list');
+  list.innerHTML = s.scripts.map((sc,i)=>`
+    <div class="script-card" data-id="${sc.id}">
+      <div><span class="s-tag">SCRIPT ${String.fromCharCode(65+i)}</span><span class="s-name">${sc.name}</span></div>
+      <div class="s-desc">${sc.desc}</div>
+    </div>`).join('');
+  list.querySelectorAll('.script-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      list.querySelectorAll('.script-card').forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      SFX.fx.pop();
+      state.script = s.scripts.find(x=>x.id===card.dataset.id);
+      $('confirm-script-text').textContent = state.script.name;
+      $('confirm-script').classList.add('show');
+    });
+  });
+}
+
+/* ================= 第四幕：排练演出引擎 ================= */
+function buildQueue(){
+  const s = state.scenario, f = state.fault;
+  const q = [];
+  s.events.forEach(e=>{
+    if(e.inject==='fault'){
+      q.push({t:e.t, lvl:f.lvl, text:f.line, pct:e.pct});
+      q.push({t:e.t+2.2, lvl:'REVERSE', text:f.handle});
+    }else{
+      q.push(Object.assign({}, e));
+    }
+  });
+  q.sort((a,b)=>a.t-b.t);
+  return q;
+}
+
+function pushLog(lvl, text, t){
+  const log = $('log-list');
+  const div = document.createElement('div');
+  div.className = 'log-line lvl-'+lvl;
+  div.innerHTML = '<span class="log-time">['+fmtTime(t)+']</span> '+(lvl==='PROCESS'?'':'· '+lvl+' · ')+text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  const snd = {BOOT:SFX.fx.boot, PROCESS:SFX.fx.tick, NOTICE:SFX.fx.warn,
+               WARNING:SFX.fx.warn, CRITICAL:SFX.fx.crit, REVERSE:SFX.fx.reverse}[lvl];
+  if(snd) snd();
+}
+
+function runRehearsal(){
+  state.fault = pick(state.scenario.faults.map(k=>FAULTS[k]));
+  const q = buildQueue();
+  const log = $('log-list');
+  log.innerHTML = '';
+  $('progress-fill').style.width = '0%';
+  $('progress-pct').textContent = '0%';
+  $('progress-track').classList.remove('stall');
+  $('run-title').textContent = '正在执行：' + state.scenario.name + ' · ' + state.script.name;
+  state.timers.forEach(clearTimeout);
+  state.timers = q.map(e=>setTimeout(()=>{
+    if(e.pct!=null){
+      $('progress-fill').style.width = e.pct+'%';
+      $('progress-pct').textContent = e.pct+'%';
+    }
+    if(e.stall){ $('progress-track').classList.add('stall'); SFX.fx.stall(); }
+    else if(e.pct===100){ $('progress-track').classList.remove('stall'); }
+    pushLog(e.lvl, e.text, e.t);
+    if(e.lvl==='FINAL'){ state.timers.push(setTimeout(finishRehearsal, 1000*SPEED)); }
+  }, e.t*1000*SPEED));
+}
+
+/* ================= 结果引擎 ================= */
+function makeResult(){
+  const s = state.scenario, sc = state.script, f = state.fault;
+  const title = pickAvoid(s.titles, state.lastTitle);
+  state.lastTitle = title;
+  const opinion = pick(s.opinions).replaceAll('{script}', sc.name).replaceAll('{code}', f.code);
+  const grade = (f.lvl==='CRITICAL') ? GRADES[2] : weightedPick(GRADES);
+  counter++; localStorage.setItem('bailan_cert_no', counter);
+  return { s, sc, f, title, opinion, grade, note:pick(NOTES), no:counter };
+}
+
+function finishRehearsal(){
+  SFX.fx.fanfare();
+  setTimeout(()=>SFX.fx.stamp(), 700);
+  state.result = makeResult();
+  const r = state.result;
+  $('cert-no').textContent = 'OFFICIAL CERTIFICATE · NO. IDLE-'+pad3(r.no);
+  drawCert(r);
+  const shares = makeShares(r);
+  $('share-group').textContent = shares.group;
+  $('share-notice').textContent = shares.notice;
+  $('share-report').textContent = shares.report;
+  $('cert-mobile').innerHTML = `
+    <div class="cm-head-en">HUMAN IDLE MANAGEMENT SYSTEM</div>
+    <div class="cm-head">人类非必要努力管理局 · 摆烂排练器</div>
+    <span class="cm-pill">已结项 · CLOSED</span>
+    <div class="cm-no">OFFICIAL CERTIFICATE · NO. IDLE-${pad3(r.no)}</div>
+    <h3 class="cm-title">${r.title}</h3>
+    <div class="cm-sub">本次排练鉴定书 · REHEARSAL CERTIFICATE</div>
+    <div class="cm-line"></div>
+    ${[['排练项目',r.s.name],['执行剧本',r.sc.name],['系统异常',r.f.code+' · '+r.f.def],['投入精力',r.sc.effort],['实际成果',r.sc.outcome]].map(f=>`<div class="cm-field"><span>${f[0]}</span><b>${f[1]}</b></div>`).join('')}
+    <div class="cm-line"></div>
+    <div><span class="cm-label">综合鉴定意见 / EVALUATION</span><p class="cm-opinion">${r.opinion}</p></div>
+    <div class="cm-grade"><span class="cm-label">FINAL DECISION</span><strong>评定为：${r.grade.label}</strong><p>${r.grade.note}</p></div>
+    <div class="cm-line"></div>
+    <div class="cm-foot">签发单位：摆烂排练器系统委员会<br>本报告仅供娱乐使用 · 不作为任何人生进度证明 · ${r.note}</div>
+    <div class="cm-seal"><b>正式通过</b><i>CERTIFIED</i></div>`;
+  showScene('cert');
+}
+
+function makeShares(r){
+  return {
+    group:'本人已通过人类非必要努力管理局认证。\n今日职称：'+r.title+'。\n核心业务：'+r.s.business+'。\n如需联系，请于下个工作日重新尝试。',
+    notice:'【系统公告】\n由于今日努力意愿不足，本人决定对现实生活进行临时维护。\n维护期间，部分功能可能无法使用，包括但不限于：积极向上、及时回复、合理规划。\n给您带来的不便，系统深表遗憾。\n预计恢复时间：不予承诺。',
+    report:'项目名称：'+r.s.project+'。\n项目周期：今天。\n主要工作：'+r.s.work+'。\n项目成果：'+r.sc.outcome+'。\n结项意见：建议将本项目纳入长期发展规划。'
+  };
+}
+
+/* ================= 鉴定书渲染器（Canvas 手绘） ================= */
+const CSANS = '"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif';
+const CMONO = '"JetBrains Mono","SF Mono",Consolas,monospace';
+const CC = {ink:'#3A3550', mut:'#8A84A3', faint:'#B3AEC9', acc:'#6C5CE7',
+            line:'rgba(58,53,80,.14)', pillBg:'rgba(108,92,231,.12)', pillLine:'rgba(108,92,231,.45)'};
+
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function setLS(ctx,v){ if('letterSpacing' in ctx) ctx.letterSpacing = v; }
+function wrapText(ctx, text, maxW){
+  const lines = [];
+  let cur = '';
+  for(const ch of text){
+    if(ctx.measureText(cur+ch).width > maxW && cur){ lines.push(cur); cur = ch; }
+    else cur += ch;
+  }
+  if(cur) lines.push(cur);
+  return lines;
+}
+
+function drawCert(r){
+  const cv = $('cert-canvas');
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(2,0,0,2,0,0);
+  ctx.clearRect(0,0,750,1100);
+
+  /* 渐变底 */
+  const g = ctx.createLinearGradient(0,0,620,1100);
+  g.addColorStop(0,'#CFC4FF'); g.addColorStop(.5,'#C7DEFF'); g.addColorStop(1,'#FFE1F0');
+  ctx.fillStyle = g; ctx.fillRect(0,0,750,1100);
+
+  /* 装饰圆环 */
+  ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(645,165,118,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(85,905,86,0,Math.PI*2); ctx.stroke();
+
+  /* 内板 */
+  rr(ctx,30,30,690,1040,26);
+  ctx.fillStyle = 'rgba(255,255,255,.62)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  ctx.textAlign = 'center';
+
+  /* 抬头 */
+  setLS(ctx,'3px');
+  ctx.fillStyle = CC.mut; ctx.font = '500 15px '+CMONO;
+  ctx.fillText('HUMAN IDLE MANAGEMENT SYSTEM', 375, 92);
+  setLS(ctx,'0px');
+  ctx.fillStyle = CC.ink; ctx.font = '500 16px '+CSANS;
+  ctx.fillText('人类非必要努力管理局 · 摆烂排练器', 375, 120);
+
+  /* 已结项 pill */
+  rr(ctx,295,142,160,34,17);
+  ctx.fillStyle = CC.pillBg; ctx.fill();
+  ctx.strokeStyle = CC.pillLine; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = CC.acc; ctx.font = '500 13px '+CSANS;
+  ctx.fillText('已结项 · CLOSED', 375, 164);
+
+  /* 编号 */
+  setLS(ctx,'1px');
+  ctx.fillStyle = CC.mut; ctx.font = '500 13px '+CMONO;
+  ctx.fillText('OFFICIAL CERTIFICATE · NO. IDLE-'+pad3(r.no), 375, 210);
+  setLS(ctx,'0px');
+
+  /* 称号 */
+  ctx.fillStyle = CC.ink; ctx.font = '700 42px '+CSANS;
+  ctx.fillText(r.title, 375, 272);
+  ctx.fillStyle = CC.mut; ctx.font = '400 14px '+CSANS;
+  ctx.fillText('本次排练鉴定书 · REHEARSAL CERTIFICATE', 375, 304);
+
+  /* 分隔线 */
+  ctx.strokeStyle = CC.line; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(70,330); ctx.lineTo(680,330); ctx.stroke();
+
+  /* 字段表 */
+  const fields = [
+    ['排练项目', r.s.name],
+    ['执行剧本', r.sc.name],
+    ['系统异常', r.f.code+' · '+r.f.def],
+    ['投入精力', r.sc.effort],
+    ['实际成果', r.sc.outcome]
+  ];
+  fields.forEach((f,i)=>{
+    const cy = 380 + i*54;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = CC.mut; ctx.font = '400 14px '+CSANS;
+    ctx.fillText(f[0], 105, cy);
+    ctx.fillStyle = CC.ink; ctx.font = '600 17px '+CSANS;
+    ctx.fillText(f[1], 255, cy+1);
+    if(i<4){
+      ctx.strokeStyle = CC.line;
+      ctx.beginPath(); ctx.moveTo(100,cy+27); ctx.lineTo(650,cy+27); ctx.stroke();
+    }
+  });
+  ctx.beginPath(); ctx.moveTo(70,628); ctx.lineTo(680,628); ctx.stroke();
+
+  /* 综合鉴定意见 */
+  ctx.textAlign = 'center';
+  setLS(ctx,'2px');
+  ctx.fillStyle = CC.mut; ctx.font = '500 13px '+CMONO;
+  ctx.fillText('综合鉴定意见 / EVALUATION', 375, 660);
+  setLS(ctx,'0px');
+  ctx.textAlign = 'left';
+  ctx.fillStyle = CC.ink; ctx.font = '400 15px '+CSANS;
+  const lines = wrapText(ctx, r.opinion, 570);
+  lines.forEach((ln,i)=>ctx.fillText(ln, 90, 694 + i*27));
+
+  /* 评级 */
+  ctx.textAlign = 'center';
+  setLS(ctx,'2px');
+  ctx.fillStyle = CC.mut; ctx.font = '500 13px '+CMONO;
+  ctx.fillText('FINAL DECISION', 375, 792);
+  setLS(ctx,'0px');
+  ctx.fillStyle = CC.acc; ctx.font = '700 34px '+CSANS;
+  ctx.fillText('评定为：'+r.grade.label, 375, 834);
+  ctx.fillStyle = CC.mut; ctx.font = '400 14px '+CSANS;
+  ctx.fillText(r.grade.note, 375, 866);
+
+  ctx.strokeStyle = CC.line;
+  ctx.beginPath(); ctx.moveTo(70,902); ctx.lineTo(680,902); ctx.stroke();
+
+  /* 落款 */
+  ctx.textAlign = 'left';
+  ctx.fillStyle = CC.mut; ctx.font = '400 14px '+CSANS;
+  ctx.fillText('签发单位：摆烂排练器系统委员会', 105, 952);
+  ctx.fillStyle = CC.faint; ctx.font = '400 12px '+CSANS;
+  ctx.fillText('本报告仅供娱乐使用 · 不作为任何人生进度证明 · '+r.note, 105, 980);
+
+  /* 印章 */
+  ctx.save();
+  ctx.translate(560, 968); ctx.rotate(-0.2);
+  ctx.strokeStyle = 'rgba(108,92,231,.75)'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(0,0,64,0,Math.PI*2); ctx.stroke();
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(0,0,50,0,Math.PI*2); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CC.acc; ctx.font = '600 19px '+CSANS;
+  ctx.fillText('正式通过', 0, -2);
+  ctx.font = '500 9px '+CMONO;
+  ctx.fillText('C E R T I F I E D', 0, 20);
+  ctx.restore();
+}
+
+/* ================= 复制与下载 ================= */
+function copyText(text){
+  const done = ()=>{ SFX.fx.ding(); toast('已复制。系统已尽力。'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text, done));
+  }else{
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;left:-999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); done(); }
+  catch(e){ toast('复制失败，请手动选择文本'); }
+  document.body.removeChild(ta);
+}
+
+$('btn-save').addEventListener('click', ()=>{
+  SFX.fx.shutter();
+  const cv = $('cert-canvas');
+  cv.toBlob(blob=>{
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '摆烂鉴定书_No.'+pad3(state.result.no)+'.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+    toast('鉴定书已导出。请妥善保管，虽然它没有任何用途。');
+  });
+});
+
+/* ================= 事件绑定 ================= */
+const sfxBtn = $('sfx-toggle');
+function renderSfx(){ sfxBtn.textContent = 'SFX · ' + (SFX.enabled ? 'ON' : 'OFF'); }
+sfxBtn.addEventListener('click', ()=>{
+  const on = SFX.toggle();
+  renderSfx();
+  if(on){ SFX.fx.tap(); toast('音效已开启。系统将开始一本正经地发出声音。'); }
+  else{ toast('音效已关闭。系统决定保持沉默，显得更专业。'); }
+});
+renderSfx();
+
+$('btn-start').addEventListener('click', ()=>{ SFX.fx.start(); showScene('select'); });
+$('btn-load-script').addEventListener('click', ()=>{ SFX.fx.pop(); renderScripts(); showScene('script'); });
+$('script-back').addEventListener('click', ()=>{ SFX.fx.tap(); showScene('select'); });
+$('btn-run').addEventListener('click', ()=>{ SFX.fx.start(); showScene('run'); runRehearsal(); });
+$('btn-retry').addEventListener('click', ()=>{ SFX.fx.down(); state.script=null; showScene('select'); });
+document.querySelectorAll('.share-copy-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>copyText($('share-'+btn.dataset.share).textContent));
+});
+
+renderScenarios();
+</script>
+</body>
+</html>
