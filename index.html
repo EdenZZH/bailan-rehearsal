@@ -526,6 +526,7 @@ const SFX = (()=>{
     shutter(){ noise({dur:.05,vol:.4,hp:1200}); noise({dur:.04,vol:.3,hp:2000,delay:.08}); },
     down(){ tone({f:700,f2:120,dur:.4,vol:.4}); }
   };
+  for(const k in fx){ fx[k] = ((fn)=>function(){ try{ fn(); }catch(e){} })(fx[k]); } /* 音效异常不外泄，绝不影响页面流程 */
   function toggle(){
     enabled = !enabled;
     localStorage.setItem('bailan_sfx', enabled?'1':'0');
@@ -601,9 +602,9 @@ function renderScenarios(){
     card.addEventListener('click', ()=>{
       grid.querySelectorAll('.card').forEach(c=>c.classList.remove('selected'));
       card.classList.add('selected');
-      SFX.fx.boing();
       state.scenario = SCENARIOS.find(s=>s.id===card.dataset.id);
       state.script = null;
+      SFX.fx.boing();
       applyTint(state.scenario.tint);
       $('confirm-scenario-text').textContent = state.scenario.name;
       $('confirm-select').classList.add('show');
@@ -626,8 +627,8 @@ function renderScripts(){
     card.addEventListener('click', ()=>{
       list.querySelectorAll('.script-card').forEach(c=>c.classList.remove('selected'));
       card.classList.add('selected');
-      SFX.fx.pop();
       state.script = s.scripts.find(x=>x.id===card.dataset.id);
+      SFX.fx.pop();
       $('confirm-script-text').textContent = state.script.name;
       $('confirm-script').classList.add('show');
     });
